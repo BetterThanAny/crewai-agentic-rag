@@ -1,0 +1,18 @@
+[project]
+name = "crewai-agentic-rag"
+version = "0.1.0"
+description = "基于 CrewAI 的 Agentic RAG 系统"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "crewai>=1.14.1",
+    "crewai-tools[rag]>=1.14.1",
+    "pytest>=9.0.3",
+    "python-dotenv>=1.1.1",
+    "streamlit>=1.56.0",
+]
+
+[tool.pytest.ini_options]
+markers = [
+    "slow: 需要真实 API 调用的测试（跳过方式：-m 'not slow'）",
+]

@@ -1,0 +1,23 @@
+# 环境变量（敏感信息）
+.env
+
+# Python
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info/
+
+# Virtual environments
+.venv/
+
+# ChromaDB 数据
+.chroma/
+.test_chroma/
+
+# 测试缓存
+.pytest_cache/
+
+# LanceDB（CrewAI Memory 存储）
+.lancedb/
