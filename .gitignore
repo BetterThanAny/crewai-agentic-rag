@@ -21,3 +21,11 @@ wheels/
 
 # LanceDB（CrewAI Memory 存储）
 .lancedb/
+
+# 编辑器/工具本地配置
+CLAUDE.md
+.claude/
+
+# macOS AppleDouble / 系统残留
+._*
+.DS_Store
