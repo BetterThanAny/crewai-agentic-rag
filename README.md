@@ -4,18 +4,21 @@
 
 ## 架构
 
-```
-用户问题
-   │
-   ▼
-┌─────────────┐     RETRIEVE     ┌─────────────┐     ┌─────────────┐
-│   Router    │ ───────────────▶ │  Retriever  │ ──▶ │  Responder  │ ──▶ 回答
-│  意图路由器  │                  │  知识检索员   │     │  回答生成器  │
-└─────────────┘                  └──────┬──────┘     └─────────────┘
-       │                                │
-       │ DIRECT                   向量检索 (ChromaDB)
-       │                                │
-       └──────────────────────────▶ Responder ──▶ 直接回答
+```mermaid
+flowchart LR
+    Q([用户问题]) --> R[Router<br/>意图路由器]
+    R -- RETRIEVE --> RT[Retriever<br/>知识检索员]
+    R -- DIRECT --> RS[Responder<br/>回答生成器]
+    RT -- 检索结果 --> RS
+    RT <-. 向量检索 .-> VDB[(ChromaDB<br/>向量库)]
+    RS --> A([回答 + 引用来源])
+
+    classDef agent fill:#e3f2fd,stroke:#1976d2,stroke-width:1.5px,color:#0d47a1
+    classDef store fill:#fff3e0,stroke:#f57c00,stroke-width:1.5px,color:#e65100
+    classDef io fill:#f3e5f5,stroke:#7b1fa2,stroke-width:1.5px,color:#4a148c
+    class R,RT,RS agent
+    class VDB store
+    class Q,A io
 ```
 
 **执行流程：**
