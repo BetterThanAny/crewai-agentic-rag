@@ -155,7 +155,7 @@ uv run pytest tests/ -v
 
 1. **两阶段路由** — Router 先判断问题类型再决定是否检索，避免对常识问题做不必要的向量查询，节省 token 和时间。
 
-2. **顺序执行（Process.sequential）** — 三个 Agent 严格按 Router → Retriever → Responder 顺序执行，通过 Task 的 `context` 参数传递上游结果，保证信息流的正确性。
+2. **顺序执行（Process.sequential）** — RETRIEVE 路径下严格按 Router → Retriever → Responder 顺序执行，DIRECT 路径跳过 Retriever 直达 Responder；两条路径均通过 Task 的 `context` 参数传递上游结果，保证信息流的正确性。
 
 3. **CrewAI Memory** — 启用短期记忆支持多轮对话，后续追问能引用之前的上下文。
 
