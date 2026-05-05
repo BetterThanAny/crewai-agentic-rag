@@ -10,6 +10,7 @@
 
 from __future__ import annotations
 
+import os
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
@@ -320,16 +321,26 @@ class TestEmbedderConfig:
 class TestGracefulDegradation:
     """优雅降级测试。"""
 
-    def test_vector_search_tool_fallback_to_mock(self):
-        """向量库不可用时，vector_search_tool 应回退到 mock 数据。"""
+    def test_vector_search_tool_no_mock_by_default(self):
+        """向量库不可用时，默认不应回退到 mock 数据。"""
         from src.tools.vector_search_tool import vector_search_tool
 
         with patch("src.tools.vector_search_tool._try_import_vector_store", return_value=None):
             result = vector_search_tool.run(query="测试查询")
+            assert "Mock 结果" not in result
+            assert "向量检索不可用" in result
+
+    def test_vector_search_tool_explicit_mock_fallback(self):
+        """显式开启开发/测试开关时，向量库不可用可回退到 mock 数据。"""
+        from src.tools.vector_search_tool import vector_search_tool
+
+        with patch.dict(os.environ, {"VECTOR_SEARCH_ENABLE_MOCK_FALLBACK": "1"}), \
+             patch("src.tools.vector_search_tool._try_import_vector_store", return_value=None):
+            result = vector_search_tool.run(query="测试查询")
             assert "Mock 结果" in result
 
     def test_vector_search_tool_handles_store_error(self):
-        """向量库检索出错时应回退到 mock。"""
+        """向量库检索出错时默认返回清晰错误，不回退到 mock。"""
         from src.tools.vector_search_tool import vector_search_tool
 
         mock_store_cls = MagicMock()
@@ -337,7 +348,9 @@ class TestGracefulDegradation:
 
         with patch("src.tools.vector_search_tool._try_import_vector_store", return_value=mock_store_cls):
             result = vector_search_tool.run(query="测试查询")
-            assert "mock" in result.lower() or "出错" in result
+            assert "Mock 结果" not in result
+            assert "向量检索不可用" in result
+            assert "连接失败" in result
 
     def test_crew_handles_kickoff_error(self, mock_crew):
         """Crew kickoff 异常时 query() 应返回错误信息而非崩溃。"""

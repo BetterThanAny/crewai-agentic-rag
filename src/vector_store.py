@@ -107,7 +107,7 @@ class VectorStore:
                     meta[k] = v
             metadatas.append(meta)
 
-        self._collection.add(
+        self._collection.upsert(
             ids=ids,
             documents=documents,
             metadatas=metadatas,

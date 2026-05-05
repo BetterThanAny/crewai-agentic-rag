@@ -1,5 +1,6 @@
 """M2b 测试：Tool 单元测试。"""
 
+import os
 from unittest.mock import patch
 
 from src.tools.vector_search_tool import _mock_search, vector_search_tool
@@ -45,21 +46,34 @@ class TestVectorSearchTool:
 
     def test_tool_returns_string(self):
         """Tool 执行结果应为字符串。"""
-        result = vector_search_tool.run(query="测试查询")
+        with patch("src.tools.vector_search_tool._try_import_vector_store", return_value=None):
+            result = vector_search_tool.run(query="测试查询")
         assert isinstance(result, str)
 
     def test_tool_result_contains_separator(self):
-        """多条结果应以分隔符连接。"""
-        result = vector_search_tool.run(query="测试查询", top_k=3)
+        """显式开启 mock 时，多条结果应以分隔符连接。"""
+        with patch.dict(os.environ, {"VECTOR_SEARCH_ENABLE_MOCK_FALLBACK": "1"}), \
+             patch("src.tools.vector_search_tool._try_import_vector_store", return_value=None):
+            result = vector_search_tool.run(query="测试查询", top_k=3)
         assert "---" in result
 
     def test_tool_single_result(self):
-        """top_k=1 时应只返回一条结果。"""
-        result = vector_search_tool.run(query="测试查询", top_k=1)
+        """显式开启 mock 时，top_k=1 应只返回一条结果。"""
+        with patch.dict(os.environ, {"VECTOR_SEARCH_ENABLE_MOCK_FALLBACK": "1"}), \
+             patch("src.tools.vector_search_tool._try_import_vector_store", return_value=None):
+            result = vector_search_tool.run(query="测试查询", top_k=1)
         assert "---" not in result
 
     @patch("src.tools.vector_search_tool._try_import_vector_store", return_value=None)
-    def test_fallback_to_mock_when_no_vector_store(self, mock_import):
-        """M2a 未就绪时应回退到 mock 数据。"""
+    def test_no_mock_when_vector_store_missing_by_default(self, mock_import):
+        """默认不应在向量库缺失时返回 mock 数据。"""
         result = vector_search_tool.run(query="测试查询")
+        assert "Mock 结果" not in result
+        assert "向量检索不可用" in result
+
+    @patch("src.tools.vector_search_tool._try_import_vector_store", return_value=None)
+    def test_explicit_mock_fallback_when_no_vector_store(self, mock_import):
+        """显式开启开发/测试开关时，向量库缺失才回退到 mock 数据。"""
+        with patch.dict(os.environ, {"VECTOR_SEARCH_ENABLE_MOCK_FALLBACK": "1"}):
+            result = vector_search_tool.run(query="测试查询")
         assert "Mock 结果" in result

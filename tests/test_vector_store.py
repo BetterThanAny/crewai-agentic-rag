@@ -34,6 +34,19 @@ class TestVectorStore:
         """写入空列表应返回 0。"""
         assert store.add_documents([]) == 0
 
+    def test_add_documents_is_idempotent_for_same_ids(self, store):
+        """重复写入相同 source/chunk_index 应更新而不是报错或重复计数。"""
+        first = [
+            Document(content="旧内容", metadata={"source": "a.txt", "chunk_index": 0}),
+        ]
+        second = [
+            Document(content="新内容", metadata={"source": "a.txt", "chunk_index": 0}),
+        ]
+
+        assert store.add_documents(first) == 1
+        assert store.add_documents(second) == 1
+        assert store.count == 1
+
     def test_search_returns_results(self, store):
         """查询应返回语义相关的结果。"""
         chunks = [

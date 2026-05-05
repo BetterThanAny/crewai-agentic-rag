@@ -1,11 +1,12 @@
 """向量检索工具 — 包装 M2a 的向量库检索接口为 CrewAI Tool。
 
-当 M2a 的 vector_store 模块就绪后，自动使用真实检索；
-否则回退到 mock 数据，保证 M2b 可独立开发和测试。
+当 M2a 的 vector_store 模块就绪后，自动使用真实检索。
+mock 数据仅在显式设置 VECTOR_SEARCH_ENABLE_MOCK_FALLBACK=1 时启用。
 """
 
 from __future__ import annotations
 
+import os
 from typing import TYPE_CHECKING
 
 from crewai.tools import tool
@@ -32,6 +33,16 @@ def _mock_search(query: str, top_k: int = 3) -> list[str]:
     ][:top_k]
 
 
+def _mock_fallback_enabled() -> bool:
+    """是否允许开发/测试环境使用 mock 检索结果。"""
+    return os.getenv("VECTOR_SEARCH_ENABLE_MOCK_FALLBACK", "").lower() in {
+        "1",
+        "true",
+        "yes",
+        "on",
+    }
+
+
 @tool("vector_search_tool")
 def vector_search_tool(query: str, top_k: int = 3) -> str:
     """从向量知识库中检索与查询最相关的文档片段。
@@ -45,17 +56,23 @@ def vector_search_tool(query: str, top_k: int = 3) -> str:
     """
     VectorStore = _try_import_vector_store()
 
-    if VectorStore is not None:
-        try:
-            store = VectorStore()
-            results = store.search(query, top_k=top_k)
-            if results:
-                return "\n\n---\n\n".join(r["content"] for r in results)
-            return "未找到相关文档内容。"
-        except Exception as e:
+    if VectorStore is None:
+        if _mock_fallback_enabled():
+            return "\n\n---\n\n".join(_mock_search(query, top_k))
+        return (
+            "向量检索不可用：未能加载向量库模块。"
+            "请确认 src.vector_store 可导入并已完成文档灌入。"
+        )
+
+    try:
+        store = VectorStore()
+        results = store.search(query, top_k=top_k)
+        if results:
+            return "\n\n---\n\n".join(r["content"] for r in results)
+        return "未找到相关文档内容。"
+    except Exception as e:
+        if _mock_fallback_enabled():
             return f"向量检索出错: {e}，回退到 mock 数据。\n" + "\n\n---\n\n".join(
                 _mock_search(query, top_k)
             )
-    else:
-        # M2a 未就绪，使用 mock
-        return "\n\n---\n\n".join(_mock_search(query, top_k))
+        return f"向量检索不可用：{e}。请检查向量库配置、Embedding 配置或本地索引状态。"
